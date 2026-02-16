@@ -1,40 +1,63 @@
 "use client";
 
-import { useState } from "react";
-import { sayHello } from "../lib/api";
+import { useEffect, useState } from "react";
+import { addName, getNames, getHealth } from "../lib/api";
 
 export default function Home() {
   const [name, setName] = useState("");
-  const [response, setResponse] = useState("");
+  const [names, setNames] = useState<string[]>([]);
+  const [status, setStatus] = useState("checking...");
 
-  async function handleSubmit() {
-    try {
-      const data = await sayHello(name);
-      setResponse(data.message);
-    } catch {
-      setResponse("API error ❌");
-    }
+  async function loadNames() {
+    const data = await getNames();
+    setNames(data.names);
+  }
+
+  useEffect(() => {
+    // check backend health
+    getHealth()
+      .then(() => setStatus("Backend Connected ✅"))
+      .catch(() => setStatus("Backend Not Reachable ❌"));
+
+    loadNames();
+  }, []);
+
+  async function handleAdd() {
+    if (!name) return;
+    await addName(name);
+    setName("");
+    loadNames();
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-3xl font-bold">FastAPI + Next.js</h1>
+    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+      <h1>Skylar FastAPI Demo</h1>
 
+      <p>
+        <b>Status:</b> {status}
+      </p>
+
+      <hr />
+
+      <h2>Add Name</h2>
       <input
-        className="border p-2 rounded"
-        placeholder="Enter name"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        placeholder="Enter name"
+        style={{ padding: 8, marginRight: 10 }}
       />
-
-      <button
-        onClick={handleSubmit}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Send
+      <button onClick={handleAdd} style={{ padding: 8 }}>
+        Add
       </button>
 
-      {response && <div className="text-xl mt-4">{response}</div>}
-    </main>
+      <hr />
+
+      <h2>Names List</h2>
+      <ul>
+        {names.map((n, i) => (
+          <li key={i}>{n}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
